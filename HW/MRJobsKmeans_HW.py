@@ -40,9 +40,83 @@ pylab.show()
 
 # In[8]:
 
-get_ipython().run_cell_magic(u'writefile', u'Kmeans.py', u'from numpy import argmin, array, random\nfrom mrjob.job import MRJob\nfrom mrjob.step import MRStep\nfrom itertools import chain\nimport os\n\n#Calculate find the nearest centroid for data point \ndef MinDist(datapoint, centroid_points):\n    datapoint = array(datapoint)\n    centroid_points = array(centroid_points)\n    diff = datapoint - centroid_points \n    diffsq = diff*diff\n    # Get the nearest centroid for each instance\n    minidx = argmin(list(diffsq.sum(axis = 1)))\n    return minidx\n\n#Check whether centroids converge\ndef stop_criterion(centroid_points_old, centroid_points_new,T):\n    oldvalue = list(chain(*centroid_points_old))\n    newvalue = list(chain(*centroid_points_new))\n    Diff = [abs(x-y) for x, y in zip(oldvalue, newvalue)]\n    Flag = True\n    for i in Diff:\n        if(i>T):\n            Flag = False\n            break\n    return Flag\n\nclass MRKmeans(MRJob): # iteration step\n    self.centroid_points=[] # not necessary unless self\n    self.k=3    \n    def steps(self):\n        return [\n            MRStep(mapper_init = self.mapper_init, mapper=self.mapper,combiner = self.combiner,reducer=self.reducer)\n               ]\n    #load centroids info from file\n    def mapper_init(self):\n        print "Current path:", os.path.dirname(os.path.realpath(__file__))\n        \n        self.centroid_points = [map(float,s.split(\'\\n\')[0].split(\',\')) for s in open("Centroids.txt").readlines()]\n        #open(\'Centroids.txt\', \'w\').close()\n        \n        print "Centroids: ", self.centroid_points\n        \n    #load data and output the nearest centroid index and data point \n    def mapper(self, _, line):\n        D = (map(float,line.split(\',\'))) # list of numbers\n        yield int(MinDist(D,self.centroid_points)), (D[0],D[1],1) # 1 at end is to sum them up in the reducer\n    #Combine sum of data points locally\n    def combiner(self, idx, inputdata):\n        sumx = sumy = num = 0\n        for x,y,n in inputdata:\n            num = num + n\n            sumx = sumx + x\n            sumy = sumy + y\n        yield idx,(sumx,sumy,num)\n    #Aggregate sum for each cluster and then calculate the new centroids\n    def reducer(self, idx, inputdata): \n        centroids = []\n        num = [0]*self.k \n        for i in range(self.k):\n            centroids.append([0,0])\n        for x, y, n in inputdata:\n            num[idx] = num[idx] + n\n            centroids[idx][0] = centroids[idx][0] + x\n            centroids[idx][1] = centroids[idx][1] + y\n        centroids[idx][0] = centroids[idx][0]/num[idx]\n        centroids[idx][1] = centroids[idx][1]/num[idx]\n\n        yield idx,(centroids[idx][0],centroids[idx][1])\n      \nif __name__ == \'__main__\':\n    MRKmeans.run()')
+%%writefile Kmeans.py 
 
+from numpy import argmin, array, random
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+from itertools import chain
+import os
 
+#Calculate find the nearest centroid for data point 
+def MinDist(datapoint, centroid_points):
+    datapoint = array(datapoint)
+    centroid_points = array(centroid_points)
+    diff = datapoint - centroid_points 
+    diffsq = diff*diff
+    # Get the nearest centroid for each instance
+    minidx = argmin(list(diffsq.sum(axis = 1)))
+    return minidx
+
+#Check whether centroids converge
+def stop_criterion(centroid_points_old, centroid_points_new,T):
+    oldvalue = list(chain(*centroid_points_old))
+    newvalue = list(chain(*centroid_points_new))
+    Diff = [abs(x-y) for x, y in zip(oldvalue, newvalue)]
+    Flag = True
+    for i in Diff:
+        if(i>T):
+            Flag = False
+            break
+    return Flag
+
+class MRKmeans(MRJob): # iteration step
+    centroid_points=[] # not necessary unless self
+    k=3    
+    def steps(self):
+        return [
+            MRStep(mapper_init = self.mapper_init, mapper=self.mapper,combiner = self.combiner,reducer=self.reducer)
+               ]
+    #load centroids info from file
+    def mapper_init(self):
+        
+        print "Current path:", os.path.dirname(os.path.realpath(__file__))
+        
+        self.centroid_points = [map(float,s.split('\n')[0].split(',')) for s in open("Centroids.txt").readlines()]
+        open('Centroids.txt', 'w').close()
+        
+        print "Centroids: ", self.centroid_points
+        
+    #load data and output the nearest centroid index and data point 
+    def mapper(self, _, line):
+        D = (map(float,line.split(','))) # list of numbers
+        yield int(MinDist(D,self.centroid_points)), (D[0],D[1],1) # 1 at end is to sum them up in the reducer # python fun
+    #Combine sum of data points locally
+    def combiner(self, idx, inputdata):
+        sumx = sumy = num = 0
+        for x,y,n in inputdata:
+            num = num + n
+            sumx = sumx + x
+            sumy = sumy + y
+        yield idx,(sumx,sumy,num)
+    #Aggregate sum for each cluster and then calculate the new centroids
+    def reducer(self, idx, inputdata): 
+        centroids = []
+        num = [0]*self.k 
+        for i in range(self.k):
+            centroids.append([0,0])
+        for x, y, n in inputdata:
+            num[idx] = num[idx] + n
+            centroids[idx][0] = centroids[idx][0] + x
+            centroids[idx][1] = centroids[idx][1] + y
+        centroids[idx][0] = centroids[idx][0]/num[idx]
+        centroids[idx][1] = centroids[idx][1]/num[idx]
+
+        yield idx,(centroids[idx][0],centroids[idx][1])
+      
+if __name__ == '__main__':
+    MRKmeans.run()
+    
 # # Driver:
 
 # Generate random initial centroids
