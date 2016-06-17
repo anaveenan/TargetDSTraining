@@ -9,7 +9,7 @@
 
 # In[6]:
 
-get_ipython().magic(u'matplotlib inline')
+#get_ipython().magic(u'matplotlib inline')
 import numpy as np
 import pylab 
 size1 = size2 = size3 = 10000
@@ -130,8 +130,10 @@ if __name__ == '__main__':
 
 # In[11]:
 
-get_ipython().magic(u'reload_ext autoreload')
-get_ipython().magic(u'autoreload 2')
+#get_ipython().magic(u'reload_ext autoreload')
+#get_ipython().magic(u'autoreload 2')
+%reload_ext autoreload
+%autoreload 2
 from numpy import random
 from Kmeans import MRKmeans, stop_criterion
 mr_job = MRKmeans(args=['Kmeandata.csv', '--file=Centroids.txt']) # training data, initial centriods coded below
@@ -140,6 +142,7 @@ mr_job = MRKmeans(args=['Kmeandata.csv', '--file=Centroids.txt']) # training dat
 centroid_points = []
 k = 3
 for i in range(k):
+    random.seed(8888)
     centroid_points.append([random.uniform(-3,3),random.uniform(-3,3)])
 with open('Centroids.txt', 'w') as f:
         f.writelines(','.join(str(j) for j in i) + '\n' for i in centroid_points)
