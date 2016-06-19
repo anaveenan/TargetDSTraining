@@ -25,6 +25,7 @@ y1 = 30 + x1 + x2 + np.random.normal(0, 1, 100)
 # Combine the OLS data
 data_ols = np.column_stack((y1,x1,x2))
 np.savetxt('OLS.csv',data_ols,delimiter = ",")
+print(data_ols[1:10])
 
 
 ## Data Visualization ##
