@@ -12,17 +12,20 @@ samples2 = np.random.multivariate_normal([6, 6], [[1, 0],[0, 1]], size2)
 data = np.append(data,samples2, axis=0)
 samples3 = np.random.multivariate_normal([0, 4], [[1, 0],[0, 1]], size3)
 data = np.append(data,samples3, axis=0)
+print(data[1:10])
 
 # Randomlize data
 data = data[np.random.permutation(size1+size2+size3),]
 np.savetxt('Kmeandata.csv',data,delimiter = ",")
 
-# generate OLS Data
+# Generate OLS Data
 x1 = 2*np.random.random_integers(1, 500, 100)
 x2 = 2*np.random.random_integers(1, 500, 100)
 y1 = 30 + x1 + x2 + np.random.normal(0, 1, 100)
-data_ols = np.row_stack((y1,x1,x2))
-np.savetxt('OLS.csv',data1,delimiter = ",")
+# Combine the OLS data
+data_ols = np.column_stack((y1,x1,x2))
+np.savetxt('OLS.csv',data_ols,delimiter = ",")
+
 
 ## Data Visualization ##
 
